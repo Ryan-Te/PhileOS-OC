@@ -8,6 +8,27 @@ if not fs.exists("/phileos/command.lua") then
 end
 
 local cmds = fs.run("/phileos/command.lua")
+
+local commands = fs.list("/commands/")
+
+for _, v in pairs(commands) do
+    if type(v) == "string" then
+        if v:sub(-4) == ".lua" then
+            local file = v:sub(1, -5)
+            local ok, ret = pcall(cmds.load, "/commands/"..file)
+            ret = ret or ""
+            if ok then
+                local toPrint = phileos.tokenize(ret, "\n")
+                for _, v in pairs(toPrint) do
+                    term.print(v)
+                end
+            else
+                term.print("Error: "..ret)
+            end
+        end
+    end
+end
+
 if fs.exists("/autoexec.bat") then
     local ok, ret = pcall(cmds.batch, "/autoexec.bat")
     ret = ret or ""

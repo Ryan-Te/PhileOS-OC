@@ -9,14 +9,14 @@ cmds.help = function()
         "help : display this list                   ",
         "dir  : list directory                 [ls] ",
         "cd   : change directory                    ",
-        "clear: clear the screen                    ",
+        "clear: clear the screen               [cls]",
         "mkdir: make directory                      ",
         "del  : delete file / directory        [rm] ",
         "ren  : rename file / directory             ",
-        "copy : copy file / directory     (WIP)[cp] ",
+        "copy : copy file / directory          [cp] ",
         "run  : run a program                       ",
         "batch: run a batch file                    ",
-        "load : load more Commands from a file (WIP)",
+        "load : load more Commands from a file      ",
     }
     local ret = ""
     for _, v in pairs(help) do
@@ -60,6 +60,7 @@ cmds.clear = function()
     term.clear()
     term.setCursorPos(1, 1)
 end
+cmds.cls = cmds.clear
 
 cmds.mkdir = function(dir)
     dir = fs.canoncialPath(dir, true)
@@ -92,6 +93,19 @@ cmds.ren = function(path, newName)
     fs.ren(path, newName)
 end
 
+cmds.copy = function(path, copy)
+    path = fs.canoncialPath(path, true)
+    copy = fs.canoncialPath(copy, true)
+    if not fs.exists(path) then
+        return "That file doesn't exist!"
+    end
+    if fs.exists(copy) then
+        return "Copy location already exists!"
+    end
+    local contents = fs.read(path)
+    fs.write(copy, contents)
+end
+cmds.cp = cmds.copy
 
 cmds.run = function(file)
     if not string.find(file, "%.") then
@@ -151,6 +165,32 @@ cmds.batch = function(file)
         end
     else
         return "Batch file doesn't exist!"
+    end
+end
+
+cmds.load = function(file)
+    if not string.find(file, "%.") then
+        file = file..".lua"
+    end
+    file = fs.canoncialPath(file, true)
+    if not fs.exists(file) then
+        return "File doesn't exist!"
+    end
+    if fs.isDir(file) then
+        return "You can't run a directory!"
+    end
+    local ok, newCmds = pcall(function() return fs.run(file) end)
+    if ok then
+        for i, v in pairs(newCmds) do
+            if cmds[i] then
+                return "Command conflict with: "..i
+            else
+                cmds[i] = v
+                return "loaded command: "..i
+            end
+        end
+    else
+        return "Error: "..err
     end
 end
 
