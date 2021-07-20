@@ -122,6 +122,10 @@ term.getDepth = function()
     return gpu.getDepth()
 end
 
+term.setDepth = function(depth)
+    return gpu.setDepth(depth)
+end
+
 
 term.clear = function()
     local Sx, Sy = gpu.getResolution()

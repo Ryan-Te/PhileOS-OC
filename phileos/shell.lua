@@ -1,4 +1,5 @@
 term.setSize(term.maxSize())
+term.setDepth(8)
 term.clear()
 term.setCursorPos(1, 1)
 term.print("PhileOS-OC Shell")
