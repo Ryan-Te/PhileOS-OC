@@ -40,8 +40,13 @@ filesystem.close(fh)
 local func = load(contents)
 local fs = func(components)
 
-if not fs.exists("/boot/loader.lua") then
-    error("Crititcal File missing: bootloader (reinstall the OS)")
+for k, _ in component.list("filesystem") do
+    local len = 3
+    while true do
+        local ok = pcall(fs.mount, k:sub(1, len), "/mnt/"..k:sub(1, len).."/")
+        if ok then break end
+        len = len + 1
+    end
 end
 
 fs.run("/boot/loader.lua")

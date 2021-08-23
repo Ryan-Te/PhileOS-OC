@@ -1,6 +1,6 @@
-term.setSize(term.maxSize())
-term.setDepth(8)
 term.clear()
+term.setSize(term.maxSize())
+term.setDepth(term.maxDepth())
 term.setCursorPos(1, 1)
 term.print("PhileOS-OC Shell")
 term.print("Version "..phileos.version)
@@ -8,7 +8,10 @@ if not fs.exists("/phileos/command.lua") then
     error("Crititcal File missing: commands (reinstall the OS)")
 end
 
-local cmds = fs.run("/phileos/command.lua")
+local ok, cmds = fs.run("/phileos/command.lua")
+if not ok then
+    error("Error: commands file corrupted (reinstall the OS)")
+end
 
 local commands = fs.list("/commands/")
 
@@ -50,17 +53,26 @@ while true do
     local cmd = cmdTbl[1]
     if type(cmds[cmd]) == "function" then
         table.remove(cmdTbl, 1)
-        local ok, ret = pcall(cmds[cmd], table.unpack(cmdTbl))
+        local ok, ret, col = pcall(cmds[cmd], table.unpack(cmdTbl))
         ret = ret or ""
+        term.setBgColour(colours.pallete.black)
+        if type(col) == "number" then
+            term.setTxColour(col)
+        else
+            term.setTxColour(colours.pallete.white)
+        end
         if ok then
             local toPrint = phileos.tokenize(ret, "\n")
             for _, v in pairs(toPrint) do
                 term.print(v)
             end
         else
+            term.setTxColour(colours.pallete.red)
             term.print("Error: "..ret)
         end
     else
+        term.setTxColour(colours.pallete.red)
         term.print("Bad command")
     end
+    term.setTxColour(colours.pallete.white)
 end

@@ -23,22 +23,24 @@ colours.pallete = pallete
 
 colours.get = function(name)
     local depth = term.getDepth()
-    if depth == 1 then
-        if name == "black" then
-            return 0
-        elseif name == "white" then
-            return 1
-        elseif pallete[name] then
-            error("Attempt to use colour "..name.." in 1 bit depth!")
-        else
-            error("That's not a valid colour!")
+    if pallete[name] then
+        if depth == 1 then
+            local brightness = 0
+            local colour = pallete[name]
+            for i = 1, 3 do
+                brightness = brightness + (colour % 256)
+                colour = colour - (colour % 256)
+                colour = colour / 256
+            end
+            if brightness < 383 then
+                return 0
+            else
+                return 1
+            end
         end
+        return pallete[name]
     else
-        if pallete[name] then
-            return pallete[name]
-        else
-            error("That's not a valid colour!")
-        end
+        error("That's not a valid colour!")
     end
 end
 

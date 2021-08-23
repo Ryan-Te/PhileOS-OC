@@ -4,19 +4,20 @@ local cmds = {}
 
 cmds.help = function()
     local help = {
-        "PhileOS-OC Default Commands ([] = aliases) ",
-        "                                           ",
-        "help : display this list                   ",
-        "dir  : list directory                 [ls] ",
-        "cd   : change directory                    ",
-        "clear: clear the screen               [cls]",
-        "mkdir: make directory                      ",
-        "del  : delete file / directory        [rm] ",
-        "ren  : rename file / directory             ",
-        "copy : copy file / directory          [cp] ",
-        "run  : run a program                       ",
-        "batch: run a batch file                    ",
-        "load : load more Commands from a file      ",
+        "PhileOS-OC Default Commands ([] = aliases)  ",
+        "                                            ",
+        "help : display this list                    ",
+        "dir  : list directory                  [ls] ",
+        "cd   : change directory                     ",
+        "clear: clear the screen                [cls]",
+        "mkdir: make directory                       ",
+        "del  : delete file / directory         [rm] ",
+        "ren  : rename file / directory              ",
+        "copy : copy file / directory           [cp] ",
+        "run  : run a program                        ",
+        "batch: run a batch file                     ",
+        "load : load more Commands from a file       ",
+        "off  : shutdown or reboot the computer      ",
     }
     local ret = ""
     for _, v in pairs(help) do
@@ -38,7 +39,7 @@ cmds.dir = function(dir)
         end
         return ret.." \n"
     else
-        return "Not a directory"
+        return "Not a directory", colours.pallete.red
     end
 end
 cmds.ls = cmds.dir
@@ -49,10 +50,10 @@ cmds.cd = function(dir)
         if fs.isDir(dir) then
             phileos.workingDir = dir
         else
-            return "That isn't a directory!"
+            return "That isn't a directory!", colours.pallete.red
         end
     else
-        return "That directory doesn't exist!"
+        return "That directory doesn't exist!", colours.pallete.red
     end
 end
 
@@ -65,7 +66,7 @@ cmds.cls = cmds.clear
 cmds.mkdir = function(dir)
     dir = fs.canoncialPath(dir, true)
     if fs.exists(dir) then
-        return "File or directory already exists there!"
+        return "File or directory already exists there!", colours.pallete.red
     end
     fs.makeDir(dir)
 end
@@ -73,10 +74,10 @@ end
 cmds.del = function(path)
     path = fs.canoncialPath(path, true)
     if path == "/" then
-        return "Don't delete the entire drive!"
+        return "Don't delete the entire drive!", colours.pallete.red
     end
     if not fs.exists(path) then
-        return "That file doesn't exist!"
+        return "That file doesn't exist!", colours.pallete.red
     end
     fs.delete(path)
 end
@@ -85,10 +86,10 @@ cmds.ren = function(path, newName)
     path = fs.canoncialPath(path, true)
     newName = fs.canoncialPath(newName, true)
     if not fs.exists(path) then
-        return "That file doesn't exist!"
+        return "That file doesn't exist!", colours.pallete.red
     end
     if fs.exists(newName) then
-        return "New name already exists!"
+        return "New name already exists!", colours.pallete.red
     end
     fs.ren(path, newName)
 end
@@ -97,10 +98,10 @@ cmds.copy = function(path, copy)
     path = fs.canoncialPath(path, true)
     copy = fs.canoncialPath(copy, true)
     if not fs.exists(path) then
-        return "That file doesn't exist!"
+        return "That file doesn't exist!", colours.pallete.red
     end
     if fs.exists(copy) then
-        return "Copy location already exists!"
+        return "Copy location already exists!", colours.pallete.red
     end
     local contents = fs.read(path)
     fs.write(copy, contents)
@@ -108,6 +109,9 @@ end
 cmds.cp = cmds.copy
 
 cmds.run = function(file)
+    if not file then
+        return "Error: no file inputted", colours.pallete.red
+    end
     if not string.find(file, "%.") then
         file = file..".lua"
     end
@@ -116,17 +120,21 @@ cmds.run = function(file)
         if not fs.isDir(file) then
             term.clear()
             term.setCursorPos(1, 1)
-            local ok, err = pcall(function() fs.run(file) end)
+            local ok, ok2, err = pcall(function() return fs.run(file) end)
             term.clear()
-            term.setCursorPos(1, 1)
+            term.setCursorPos(1, 1)          
             if not ok then
-                return "Error: "..err
+                return ok2, colours.pallete.red
+            elseif not ok2 then
+                local colon = string.find(err, ":")
+                err = file..err:sub(colon)
+                return err, colours.pallete.red
             end
         else
-            return "You can't run a directory!"
+            return "You can't run a directory!", colours.pallete.red
         end
     else
-        return "Program doesn't exist!"
+        return "Program doesn't exist!", colours.pallete.red
     end
 end
 
@@ -154,17 +162,17 @@ cmds.batch = function(file)
                             term.print(v)
                         end
                     else
-                        return "Error at line "..i..": "..ret
+                        return "Error at line "..i..": "..ret, colours.pallete.red
                     end
                 else
-                    return "Error at line "..i..": Bad command"
+                    return "Error at line "..i..": Bad command", colours.pallete.red
                 end
             end
         else
-            return "You can't run a directory!"
+            return "You can't run a directory!", colours.pallete.red
         end
     else
-        return "Batch file doesn't exist!"
+        return "Batch file doesn't exist!", colours.pallete.red
     end
 end
 
@@ -174,23 +182,32 @@ cmds.load = function(file)
     end
     file = fs.canoncialPath(file, true)
     if not fs.exists(file) then
-        return "File doesn't exist!"
+        return "File doesn't exist!", colours.pallete.red
     end
     if fs.isDir(file) then
-        return "You can't run a directory!"
+        return "You can't run a directory!", colours.pallete.red
     end
-    local ok, newCmds = pcall(function() return fs.run(file) end)
+    local ok, ok2, newCmds = pcall(function() return fs.run(file) end)
     if ok then
         for i, v in pairs(newCmds) do
             if cmds[i] then
-                return "Command conflict with: "..i
+                return "Command conflict with: "..i, colours.pallete.red
             else
                 cmds[i] = v
-                return "loaded command: "..i
+                term.print("loaded command: "..i)
             end
         end
     else
-        return "Error: "..err
+        return "Error: "..err, colours.pallete.red
+    end
+end
+
+cmds.off = function(reboot)
+    if reboot == "reboot" then
+        computer.shutdown(true)
+    end
+    if reboot == "shutdown" then
+        computer.shutdown()
     end
 end
 

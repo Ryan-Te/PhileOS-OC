@@ -122,6 +122,10 @@ term.getDepth = function()
     return gpu.getDepth()
 end
 
+term.maxDepth = function()
+    return gpu.maxDepth()
+end
+
 term.setDepth = function(depth)
     return gpu.setDepth(depth)
 end
