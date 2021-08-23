@@ -26,6 +26,8 @@ cmds.help = function()
     return ret
 end
 
+cmds[""] = function() end
+
 cmds.dir = function(dir)
     dir = fs.canoncialPath(dir, true)
     if fs.isDir(dir) then
