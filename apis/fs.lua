@@ -8,7 +8,7 @@ local function getMountAndPath(path)
     local mount = nil
     for i, _ in pairs(filesystems) do
         if path:sub(1, #i) == i then
-            if not mount or mount:sub(1, #mount) == mount then
+            if (not mount) or (#i > #mount) then
                 mount = i
             end
         end
