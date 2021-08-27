@@ -38,16 +38,24 @@ end
 
 term.read = function()
     local text = ""
+    local ocpX = cpX
     cursor = 1
+    local Sx, Sy = gpu.getResolution()
     local ic = false
     local id = phileos.addTimer(0.5)
     while true do
-        gpu.set(cpX, cpY, text.." ")
+        if cpY + math.floor((cursor - 2 + ocpX) / Sx) > Sy then
+            local lines = cpY + math.floor((cursor - 2 + ocpX) / Sx) - Sy
+            gpu.copy(1, lines, Sx, Sy, 0, 0 - lines)
+            gpu.fill(1, Sy, Sx, Sy, " ")
+            cpY = Sy - lines
+        end
+        term.print(text.." ", true)
         if ic then term.invertColours() end
         if cursor > #text then
-            gpu.set(cpX + cursor - 1, cpY, " ")
+            gpu.set(((cpX + cursor - 2) % Sx) + 1, cpY + math.floor((cursor - 2 + ocpX) / Sx), " ")
         else
-            gpu.set(cpX + cursor - 1, cpY, text:sub(cursor, cursor))
+            gpu.set(((cpX + cursor - 2) % Sx) + 1, cpY + math.floor((cursor - 2 + ocpX) / Sx), text:sub(cursor, cursor))
         end
         if ic then term.invertColours() end
         local e = table.pack(phileos.waitForEvent())
@@ -61,10 +69,10 @@ term.read = function()
                 cursor = cursor + 1
             elseif e[2] == keys.backspace and cursor > 1 then
                 text = text:sub(1, cursor - 2)..text:sub(cursor)
-                gpu.set(cpX + #text + 1, cpY, " ")
+                gpu.set(((cpX + #text) % Sx) + 1, cpY + math.floor((#text + ocpX) / Sx), " ")
                 cursor = cursor - 1
             elseif e[2] == keys.enter then
-                gpu.set(cpX, cpY, text.." ")
+                term.print(text.." ", true)
                 break
             end
         elseif e[1] == "timer" and e[2] == id then
@@ -73,8 +81,7 @@ term.read = function()
         end
     end
     cpX = 1
-    cpY = cpY + 1
-    local Sx, Sy = gpu.getResolution()
+    cpY = cpY + 1 + math.floor((#text - 2 + ocpX) / Sx)
     if cpY > Sy then
         local lines = cpY - Sy
         gpu.copy(1, lines, Sx, Sy, 0, 0 - lines)
@@ -84,20 +91,25 @@ term.read = function()
     return text
 end
 
-term.print = function(str)
-    local Sx = gpu.getResolution()
+term.print = function(str, nomove)
+    local Sx, Sy = gpu.getResolution()
+    local yp = cpY
+    local xp = cpX
     while str ~= "" do
-        gpu.set(cpX, cpY, str)
-        cpX = 1
-        cpY = cpY + 1
-        local Sx, Sy = gpu.getResolution()
-        if cpY > Sy then
-            local lines = cpY - Sy
-            gpu.copy(1, lines, Sx, Sy, 0, 0 - lines)
-            gpu.fill(1, Sy, Sx, Sy, " ")
-            cpY = Sy
+        gpu.set(xp, yp, str)
+        yp = yp + 1
+        if not nomove then
+            cpX = 1
+            cpY = cpY + 1
+            if cpY > Sy then
+                local lines = cpY - Sy
+                gpu.copy(1, lines, Sx, Sy, 0, 0 - lines)
+                gpu.fill(1, Sy, Sx, Sy, " ")
+                cpY = Sy
+            end
         end
-        str = string.sub(str, Sx - cpX + 2)
+        str = string.sub(str, Sx - xp + 2)
+        xp = 1
     end
 end
 
