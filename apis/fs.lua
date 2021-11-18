@@ -140,6 +140,7 @@ fs.write = function(path, data)
     filesystems[mount].write(fh, data)
     filesystems[mount].close(fh)
 end
+
 fs.canoncialPath = function(path, addWD)
     path = path or ""
     if path:sub(1, 1) ~= "/" and addWD then
@@ -173,6 +174,41 @@ fs.canoncialPath = function(path, addWD)
 end
 
 fs.require = function(module, ...)
+    local file = nil
+    for v in string.gmatch(fs.packagePath, ".-;") do
+        local testFile = string.gsub(string.sub(v, 1, -2), "?", module)
+        local ok, mount, testFile = pcall(function() return getMountAndPath(testFile) end)
+        if ok then
+            if filesystems[mount].exists(testFile) then
+                file = mount..testFile
+                break
+            end
+        end
+    end
+    if file == nil then
+        error("Module doesn't exist!")
+    end
+    local mount, file = getMountAndPath(file)
+    local fh = filesystems[mount].open(file)
+    local contents = ""
+    local filepart = filesystems[mount].read(fh, 2048)
+    while filepart ~= nil do
+        contents = contents..filepart
+        filepart = filesystems[mount].read(fh, 2048)
+    end
+    filesystems[mount].close(fh)
+    local env = setmetatable(loaded, {__index = _ENV})
+    local func = load(contents, nil, nil, env)
+    local returns = table.pack(pcall(func, ...))
+    if returns[1] then
+        table.remove(returns, 1)
+        return table.unpack(returns)
+    else
+        error("Error loading module:"..returns[2])
+    end
+end
+
+fs.requireGlobal = function(module, ...)
     local file = nil
     for v in string.gmatch(fs.packagePath, ".-;") do
         local testFile = string.gsub(string.sub(v, 1, -2), "?", module)

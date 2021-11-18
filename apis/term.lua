@@ -148,4 +148,86 @@ term.clear = function()
     gpu.fill(1, 1, Sx, Sy, " ")
 end
 
+term.createWin = function(x, y, w, h)
+    local win = {x, y, colours.get("black"), colours.get("white")}
+    for i = 1, w do
+        table.insert(win, {})
+        for j = 1, h do
+            table.insert(win[i + 4], {colours.get("black"), colours.get("black"), " "})
+        end
+    end
+    return win
+end
+
+term.resizeWin = function(win, nw, nh)
+    local newwin = {win[1], win[2], win[3], win[4]}
+    for i = 1, w do
+        table.insert(win, {})
+        for j = 1, h do
+            if win[i] then
+                table.insert(win[i + 4], {win[i][j][1] or colours.get("black"), win[i][j][2] or colours.get("black"), win[i][j][3] or " "})
+            else
+                table.insert(win[i + 4], {colours.get("black"), colours.get("black"), " "})
+            end
+        end
+    end
+    return newwin
+end
+
+term.toWin = function(win)
+    gpu = {
+        getBackground = function() return win[3] end,
+        getForeground = function() return win[4] end,
+        setBackground = function(col) win[3] = col end,
+        setForeground = function(col) win[4] = col end,
+        set = function(x, y, text)
+            for i = y, y + #text - 1 do
+                win[x + 4][i] = {win[3], win[4], text.sub(i, i)}
+            end
+        end,
+        getResolution = function() return #win - 4, #win[5] end,
+        setResolution = function(x, y) win = term.resizeWin(win, nw, nh) end,
+        fill = function(xs, ys, xe, ye, char)
+            if #char ~= 1 then error("Fill string must be length of 1!") end
+            for i = xs, xe do
+                for j = ys, ye do
+                    if win[i + 4] then
+                        win[i + 4][j] = (win[i + 4][j] and {win[3], win[4], char}) or nil
+                    end
+                end
+            end
+        end,
+        copy = function(xs, ys, xe, ye, tx, ty)
+            for i = xs, xe do
+                for j = ys, ye do
+                    if win[i + 4 + tx] then
+                        win[i + 4 + tx][j + ty] = (win[i + 4 + tx][j + ty] and {win[3], win[4], char}) or nil
+                    end
+                end
+            end
+        end,
+        getDepth = function() return gpu.getDepth() end,
+    }
+end
+
+term.toDef = function()
+    gpu = component.proxy(components.gpu)
+end
+
+term.renderWin = function(win, xO, yO)
+    local number = gpu.allocateBuffer(win[3], win[4])
+    gpu.setActiveBuffer(number)
+    for x = 1, #win - 4 do
+        for y = 1, #win[5] do
+            gpu.setBackground(win[x + 4][y][1])
+            gpu.setForeground(win[x + 4][y][2])
+            gpu.set(x, y, win[x + 4][y][3])
+        end
+    end
+    local XP = (xO or win[1])
+    local YP = (yO or win[2])
+    gpu.bitblt(0, YP, XP, win[3], win[4], number, 1, 1)
+    gpu.freeBuffer(number)
+end
+
 return term

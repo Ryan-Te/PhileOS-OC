@@ -6,8 +6,8 @@ if not fs.exists("/apis/phileos.lua") then
     error("Crititcal API missing: phileos (reinstall the OS)")
 end
 
-fs.require("term")
-fs.require("phileos")
+fs.requireGlobal("term")
+fs.requireGlobal("phileos")
 
 local Sx, Sy = term.getSize()
 
@@ -26,7 +26,7 @@ for _, v in pairs(apis) do
         if v:sub(-4) == ".lua" then
             local api = v:sub(1, -5)
             if api ~= "fs" and api ~= "term" and api ~= "phileos" then
-                local ok, err = pcall(function() fs.require(api) end)
+                local ok, err = pcall(function() fs.requireGlobal(api) end)
                 if ok then
                     loaded = loaded + 1
                     term.print("Loaded API: "..api.." ("..loaded.." / "..#apis..")")
@@ -41,5 +41,7 @@ end
 if not fs.exists("/phileos/shell.lua") then
     error("Crititcal File missing: shell (reinstall the OS)")
 end
-
-fs.run("/phileos/shell.lua")
+local ok, err = fs.run("/phileos/ockrnl.lua")
+if not ok then
+    error("Error with ockrnl: "..err)
+end

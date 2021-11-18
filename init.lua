@@ -48,5 +48,7 @@ for k, _ in component.list("filesystem") do
         len = len + 1
     end
 end
-
-fs.run("/boot/loader.lua")
+ok, err = fs.run("/boot/loader.lua")
+if not ok then
+    error("Error with bootloader: "..err)
+end

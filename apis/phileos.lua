@@ -19,6 +19,8 @@ phileos.version = "0.0.1 PRE ALPHA"
 
 phileos.workingDir = "/"
 
+phileos.user = "nil"
+
 phileos.tokenize = function(str, split)
     local ret = {}
     for v in string.gmatch(str, ".-"..split) do
@@ -46,7 +48,7 @@ end
 
 phileos.waitForEvent = function(time, raw)
     while true do
-        local e = table.pack(computer.pullSignal())
+        local e = table.pack(computer.pullSignal(time))
         if e == nil then return nil end
         if e[1] == "key_down" then
             if modKeys.LCrtl and modKeys.LAlt and e[4] == keys.c then computer.pushSignal("terminate") end
