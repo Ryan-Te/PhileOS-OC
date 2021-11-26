@@ -36,6 +36,10 @@ term.write = function(string)
     cpX = cpX + #string
 end
 
+term.writeAt = function(string, x, y)
+    gpu.set(x, y, string)
+end
+
 term.read = function()
     local text = ""
     local ocpX = cpX

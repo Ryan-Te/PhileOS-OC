@@ -49,7 +49,7 @@ end
 phileos.waitForEvent = function(time, raw)
     while true do
         local e = table.pack(computer.pullSignal(time))
-        if e == nil then return nil end
+        if e[1] == nil then return nil end
         if e[1] == "key_down" then
             if modKeys.LCrtl and modKeys.LAlt and e[4] == keys.c then computer.pushSignal("terminate") end
             if e[3] >= 32 then
@@ -94,6 +94,7 @@ phileos.waitForEvent = function(time, raw)
                 return "timer", e[2]
             else
                 computer.pushSignal("timer", e[2])
+                coroutine.yield()
                 goto continue
             end
         elseif e[1] == "terminate" then

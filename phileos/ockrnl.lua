@@ -38,66 +38,81 @@ local function addThread(id, parent, level, program, ...)
         if level > threadLvls[parent] or level <= 1 then error("Insufficient permissions to create level "..level.." thread") end
     end
     local id = id or #threads + 1
-    local _ENV2 = {table.unpack(_ENV)}
-    _ENV2.gpu = (id == 1 and gpu) or nil
-    threads[id] = coroutine.create(function(program, ...) 
-        local env = setmetatable({
-            fs = {
-                mount = function(uuid, path) if level < 4 then error("Insufficient permissions to mount") fs.mount(uuid, path) end end,
-                unmount = function(path) if level < 4 then error("Insufficient permissions to unmount") fs.unmount(path) end end,
-                getMountPoint = function(uuid) if level < 4 then error("Insufficient permissions to get mount points") fs.getMountPoint(uuid) end end,
-                exists = function(path) if not canAccess(path) then error("Insufficient permissions to access "..path) fs.exists(path) end end,
-                list = function(path) if not canAccess(path) then error("Insufficient permissions to access "..path) fs.list(path) end end,
-                makeDir = function(path) if not canAccess(path) then error("Insufficient permissions to access "..path) fs.makeDir(path) end end,
-                isDir = function(path) if not canAccess(path) then error("Insufficient permissions to access "..path) fs.exists(isDir) end end,
-                ren = function(path, path2) if not canAccess(path) then error("Insufficient permissions to access "..path) end if not canAccess(path2) then error("Insufficient permissions to access "..path2) fs.ren(path, path2) end end,
-                read = function(path) if not canAccess(path) then error("Insufficient permissions to access "..path) fs.read(path) end end,
-                write = function(path) if not canAccess(path) then error("Insufficient permissions to access "..path) fs.write(path) end end,
-                canoncialPath = function(path, addWD) if not canAccess(path) then error("Insufficient permissions to access "..path) fs.canoncialPath(path, addWD) end end,
-                requireGlobal = function(module, ...) if level < 4 then error("Insufficient permissions to global require") fs.requireGlobal(module, ...) end end,
-                run = function(path, ...) if not canAccess(path) then error("Insufficient permissions to access "..path) fs.run(path, ...) end end,
-            },
-            thread = {
-                create = function(level, program, ...) addThread(nil, id, level, program, ...) end,
-                delete = function(idtd) if not threads[idtd] then error("That thread doesn't exist") end if (level == 1) or (level == 2 and threadParents[idtd] ~= id) or (level == 3 and threadLvls[idtd] > 3) then error("Insufficient permissions to delete thread "..idtd) end threads[idtd] = nil threadLvls[idtd] = nil threadParents[idtd] = nil threadPackets[idtd] = nil end,
-                override = function(idto, level, program, ...) if not threads[idto] then error("That thread doesn't exist") end if (level < 4) then error("Insufficient permissions to override thread "..idto) end threads[idto] = nil threadLvls[idto] = nil threadParents[idto] = nil threadPackets[idto] = nil addThread(nil, id, level, program, ...) end,
-                sendPacket = function(idtr, msg) table.insert(threadPackets[idtr], {"packet", id, msg}) end,
-               sendEvent = (id == 1 and function(idtr, ...) table.insert(threadPackets[idtr], {...}) end) or nil,
-            },
-            computer = {
-                pullSignal = function(time) 
-                    endtime = computer.uptime() + time 
-                    while threadPackets[id] == nil do 
-                        if computer.uptime() >= endtime then return nil end
-                        coroutine.yield()
-                    end
-                    local ret = threadPackets[id][1]
-                    table.remove(threadPackets[id], 1)
-                    return ret
-                end,
-                pushSignal = function(...)
-                    table.insert(threadPackets[id], {...})
-                end,
-            },
-        }, {__index = {}})
-        local fn, err = load(fs.read(program), nil, env)
-        coroutine.yield()
-		local ok, err = pcall(fn, table.unpack({...}))
+    local env = setmetatable({
+        fs = {
+            mount = function(uuid, path) if level < 4 then error("Insufficient permissions to mount") fs.mount(uuid, path) end end,
+            unmount = function(path) if level < 4 then error("Insufficient permissions to unmount") fs.unmount(path) end end,
+            getMountPoint = function(uuid) if level < 4 then error("Insufficient permissions to get mount points") fs.getMountPoint(uuid) end end,
+            exists = function(path) if not canAccess(path) then error("Insufficient permissions to access "..path) fs.exists(path) end end,
+            list = function(path) if not canAccess(path) then error("Insufficient permissions to access "..path) fs.list(path) end end,
+            makeDir = function(path) if not canAccess(path) then error("Insufficient permissions to access "..path) fs.makeDir(path) end end,
+            isDir = function(path) if not canAccess(path) then error("Insufficient permissions to access "..path) fs.exists(isDir) end end,
+            ren = function(path, path2) if not canAccess(path) then error("Insufficient permissions to access "..path) end if not canAccess(path2) then error("Insufficient permissions to access "..path2) fs.ren(path, path2) end end,
+            read = function(path) if not canAccess(path) then error("Insufficient permissions to access "..path) fs.read(path) end end,
+            write = function(path) if not canAccess(path) then error("Insufficient permissions to access "..path) fs.write(path) end end,
+            canoncialPath = function(path, addWD) if not canAccess(path) then error("Insufficient permissions to access "..path) fs.canoncialPath(path, addWD) end end,
+            requireGlobal = function(module, ...) if level < 4 then error("Insufficient permissions to global require") fs.requireGlobal(module, ...) end end,
+            run = function(path, ...) if not canAccess(path) then error("Insufficient permissions to access "..path) fs.run(path, ...) end end,
+        },
+        thread = {
+            create = function(level, program, ...) addThread(nil, id, level, program, ...) end,
+            delete = function(idtd) if not threads[idtd] then error("That thread doesn't exist") end if (level == 1) or (level == 2 and threadParents[idtd] ~= id) or (level == 3 and threadLvls[idtd] > 3) then error("Insufficient permissions to delete thread "..idtd) end threads[idtd] = nil threadLvls[idtd] = nil threadParents[idtd] = nil threadPackets[idtd] = nil end,
+            override = function(idto, level, program, ...) if not threads[idto] then error("That thread doesn't exist") end if (level < 4) then error("Insufficient permissions to override thread "..idto) end threads[idto] = nil threadLvls[idto] = nil threadParents[idto] = nil threadPackets[idto] = nil addThread(nil, id, level, program, ...) end,
+            sendPacket = function(idtr, msg) table.insert(threadPackets[idtr], {"packet", id, msg}) end,
+            sendEvent = (id == 1 and function(idtr, ...) table.insert(threadPackets[idtr], {...}) end) or nil,
+        },
+        computer = {
+            pullSignal = function(time)
+                endtime = computer.uptime() + (time or 0)
+                while threadPackets[id][1] == nil do  
+                    if computer.uptime() >= endtime and time then return nil end
+                    coroutine.yield()
+                end
+                local ret = threadPackets[id][1]
+                table.remove(threadPackets[id], 1)
+                return table.unpack(ret)
+            end,
+            pushSignal = function(...)
+                table.insert(threadPackets[id], {...})
+            end,
+            uptime = function() return computer.uptime() end,
+        },
+    }, {__index = _ENV})
+    local env2 = setmetatable({
+        phileos = fs.require("phileos", env),
+    }, {__index = env})
+    threads[id] = coroutine.create(function(program, env, ...) 
+        local fn, err = load(fs.read(program), program, nil, env)
+        if err then 
+            term.setCursorPos(1, 1)
+            term.write("Error Loading!")
+            term.setCursorPos(1, 2)
+            term.print(err)
+        else
+            coroutine.yield()
+		    local ok, err = pcall(fn, table.unpack({...}))
+            if err then 
+                term.setCursorPos(1, 1)
+                term.write("Error Running!")
+                term.setCursorPos(1, 2)
+                term.print(err)
+            end
+        end
         while true do
-            gpu.set(1, 1, "H")
             coroutine.yield()
         end
 	end)
-    coroutine.resume(threads[id], program)
+    coroutine.resume(threads[id], program, env2)
     threadLvls[id] = level
     threadParents[id] = parent
     threadPackets[id] = {}
 end
 
 addThread(nil, 0, 5, "/phileos/iop.lua")
+addThread(nil, 0, 5, "/boot/poslogon.lua")
 
 local function update(e)
-    table.insert(threadPackets[1], e)
+    if e then table.insert(threadPackets[1], e) end
     for i, v in pairs(threads) do
         coroutine.resume(v)
         if coroutine.status(v) == "dead" then
@@ -111,5 +126,5 @@ local function update(e)
 end
 
 while true do
-    update(phileos.waitForEvent())
+    update(table.pack(phileos.waitForEvent(0)))
 end

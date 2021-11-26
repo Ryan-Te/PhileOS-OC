@@ -173,7 +173,7 @@ fs.canoncialPath = function(path, addWD)
     return path
 end
 
-fs.require = function(module, ...)
+fs.require = function(module, envTU, ...)
     local file = nil
     for v in string.gmatch(fs.packagePath, ".-;") do
         local testFile = string.gsub(string.sub(v, 1, -2), "?", module)
@@ -197,8 +197,8 @@ fs.require = function(module, ...)
         filepart = filesystems[mount].read(fh, 2048)
     end
     filesystems[mount].close(fh)
-    local env = setmetatable(loaded, {__index = _ENV})
-    local func = load(contents, nil, nil, env)
+    local env = envTU or setmetatable(loaded, {__index = _ENV})
+    local func = load(contents, file, nil, env)
     local returns = table.pack(pcall(func, ...))
     if returns[1] then
         table.remove(returns, 1)
@@ -233,7 +233,7 @@ fs.requireGlobal = function(module, ...)
     end
     filesystems[mount].close(fh)
     local env = setmetatable(loaded, {__index = _ENV})
-    local func = load(contents, nil, nil, env)
+    local func = load(contents, file, nil, env)
     local returns = table.pack(pcall(func, ...))
     if returns[1] then
         table.remove(returns, 1)
@@ -256,7 +256,7 @@ fs.run = function(file, ...)
     filesystems[mount].close(fh)
 
     local env = setmetatable(loaded, {__index = _ENV})
-    local func = load(contents, nil, nil, env)
+    local func = load(contents, file, nil, env)
     local returns = table.pack(pcall(func, ...))
     return table.unpack(returns)
 end
